@@ -1,0 +1,33 @@
+untitled:Untitled-1
+.post(cors.corsWithOptions, authenticate.verifyUser, 
+    (req, res, next) => {
+        favorites.find({})
+            .populate('user')
+            .populate('dishes')
+            .then((favorites) => {
+                var user;
+                if(favorites)
+                    user = favorites.filter(fav => fav.user._id.toString() === req.user.id.toString())[0];
+                if(!user) 
+                    user = new favorites({user: req.user.id});
+                for(let i of req.body){
+                    if(user.dishes.find((d_id) => {
+                        if(d_id._id){
+                            return d_id._id.toString() === i._id.toString();
+                        }
+                    }))
+                        continue;
+                    user.dishes.push(i._id);
+                }
+                user.save()
+                    .then((userFavs) => {
+                        res.statusCode = 201;
+                        res.setHeader("Content-Type", "application/json");
+                        res.json(userFavs);
+                        console.log("favorites Created");
+                    }, (err) => next(err))
+                    .catch((err) => next(err));
+                
+            })
+            .catch((err) => next(err));
+})
